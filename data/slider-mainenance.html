@@ -1,0 +1,229 @@
+﻿<!DOCTYPE html>
+
+<html lang='en' xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Camera Slider - Maintenance</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favico.ico" />
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <script src="bootstrap.bundle.min.js"></script>
+    <style>
+        .custom-toggler .navbar-toggler-icon {
+            background-image: url(menu.png)
+        }
+    </style>
+    <script>
+
+        function PageLoaded() {
+
+            document.getElementById("btnCalibrate").addEventListener('click', function () {
+                sendCommand('calibrate');
+            });
+
+            document.getElementById("infoPanel").value = "";
+        }
+
+        function onChange(elem) {
+            var id = elem.id;
+
+        }
+
+        const waitForOpenConnection = (socket) => {
+            return new Promise((resolve, reject) => {
+                const maxNumberOfAttempts = 10
+                const intervalTime = 200 //ms
+
+                let currentAttempt = 0
+                const interval = setInterval(() => {
+                    if (currentAttempt > maxNumberOfAttempts - 1) {
+                        clearInterval(interval)
+                        reject(new Error('Maximum number of attempts exceeded'))
+                    } else if (socket.readyState === socket.OPEN) {
+                        clearInterval(interval)
+                        resolve()
+                    }
+                    currentAttempt++
+                }, intervalTime)
+            })
+        }
+
+        const sendMessage = async (socket, msg) => {
+            if (socket.readyState !== socket.OPEN) {
+                try {
+                    await waitForOpenConnection(socket)
+                    socket.send(msg)
+                } catch (err) { console.error(err) }
+            } else {
+                socket.send(msg)
+            }
+        }
+
+        function sendCommand(cmd = "stop", sourceControl = "-", param1 = "-", param2 = "-", param3 = "-", param4 = "-", param5 = "-", param6 = "-", param7 = "-", param8 = "-", param9 = "-", param10 = "-") {
+            const wsMotorControl = new WebSocket(
+                "ws://%ipaddress%/ws",
+            );
+
+            // if (cmd == "SaveSettings") {
+            //     param1 = "panningvideoSaveSettings";
+            //     param2 = document.getElementById("StartPositionX").value;
+            //     param3 = document.getElementById("StartPositionY").value;
+            //     param4 = document.getElementById("StartPositionZ").value;
+            //     param5 = document.getElementById("EndPositionX").value;
+            //     param6 = document.getElementById("EndPositionY").value;
+            //     param7 = document.getElementById("EndPositionZ").value;
+
+            //     param8 = document.getElementById("Speed").value;
+            // }
+
+            var myJson;
+
+            myJson = '{"command": "'
+            myJson += cmd
+            myJson += '","source": "';
+            myJson += sourceControl;
+            myJson += '","params": {"param1": "'
+            myJson += String(param1)
+            myJson += '","param2":"'
+            myJson += String(param2)
+            myJson += '","param3":"'
+            myJson += String(param3)
+            myJson += '","param4":"'
+            myJson += String(param4)
+            myJson += '","param5":"'
+            myJson += String(param5)
+            myJson += '","param6":"'
+            myJson += String(param6)
+            myJson += '","param7":"'
+            myJson += String(param7)
+            myJson += '","param8":"'
+            myJson += String(param8)
+            myJson += '","param9":"'
+            myJson += String(param9)
+            myJson += '","param10":"'
+            myJson += String(param10)
+            myJson += '"}}'
+
+
+            sendMessage(wsMotorControl, myJson + '\0');
+            document.getElementById("dataPanel").innerText = myJson;
+
+            wsMotorControl.onmessage = function (e) {
+            }
+
+            return;
+        }
+
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+</head>
+
+
+
+<body onload="PageLoaded();">
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg bg-light">
+            <div class="container-fluid">
+                <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarTogglerDemo01" aria-controls="navbarTogglerDemo01" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
+                    <ul class="navbar-nav nav-pills me-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link" href="/">Status</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/general-settings.html">General</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button"
+                                data-bs-toggle="dropdown">Slider</a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="/slider-timelapse.html">Timelapse</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item " href="/slider-panning-video.html">Panning video</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item active" href="/slider-mainenance.html">Maintenance</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/network-settings.html">Network</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/tools.html">Tools</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <div class="mt-6 p-3 bg-primary text-white rounded">
+            <h1>Camera Slider</h1>
+            <h2>Maintenance</h2>
+        </div>
+        <br />
+        <div class="alert alert-danger" %danger-hidden%>
+            <strong>Error!</strong> The local IP address could not be determined. Restart the device!
+        </div>
+        <div class="card-body">
+
+            <div class="mb-3 row">
+                <h4>Calibrate movement</h4>
+            </div>
+            <div class="mb-3 row">
+                <div class="col-sm-6">
+                    <label for="btnCalibrate" class="col-form-label">To auto-discover the physical limits of this
+                        device, click Calibrate. The pan head will move in each direction to detect its limits.
+                        <strong>Important:</strong> Any remote release cable must be unplugged from the camera/device
+                        for this operation!</strong></label>
+                </div>
+                <div class="col-sm">
+                    <input type='button' class='btn btn-primary' id="btnCalibrate" value='Calibrate' />
+                </div>
+
+            </div>
+
+            <!-- <div class="mb-3 row">
+                <h4>Calibrate battery</h4>
+            </div>
+            <div class="mb-3 row">
+                <div class="col-sm-6">
+                    <label for="btnCalibrate" class="col-form-label">To auto-discover the physical limits of this
+                        device, click Calibrate.</label>
+                </div>
+                <div class="col-sm">
+                    <input type='button' class='btn btn-primary' id="btnCalibrate" value='Calibrate' />
+                </div>
+
+            </div> -->
+
+            <div class="mb-3 d-grid">
+                <div class="col-sm-12 alert alert-dark alert-dismissible fade show" id="infoPanel" name="infoPanel">
+                    %websocket_messages%
+                </div>
+            </div>
+            <div class="mb-3 d-grid">
+                <div class="col-sm-12 alert alert-dark alert-dismissible fade show" id="dataPanel" name="dataPanel">
+                    %websocket_messages%
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <small class='well well-sm'>
+        (c)2024 Viktor Takacs - <a href='https://diy.viktak.com' target='_blank'>diy.viktak.com</a>
+    </small>
+</body>
+
+</html>

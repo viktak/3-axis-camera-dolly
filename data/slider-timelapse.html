@@ -1,0 +1,599 @@
+﻿<!DOCTYPE html>
+
+<html lang='en' xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Camera Slider - Timelapse</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favico.ico" />
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <script src="bootstrap.bundle.min.js"></script>
+    <style>
+        .custom-toggler .navbar-toggler-icon {
+            background-image: url(menu.png)
+        }
+    </style>
+    <script>
+
+        function PageLoaded() {
+
+            //  Manual jogging buttons
+
+            //  Slider
+            document.getElementById("btnSlider-max").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnSlider-max", "slider", "-10000");
+            });
+            document.getElementById("btnSlider-med").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnSlider-med", "slider", "-1000");
+            });
+            document.getElementById("btnSlider-min").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnSlider-min", "slider", "-100");
+            });
+
+            document.getElementById("btnSlider+max").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnSlider+max", "slider", "10000");
+            });
+            document.getElementById("btnSlider+med").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnSlider+med", "slider", "1000");
+            });
+            document.getElementById("btnSlider+min").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnSlider+min", "slider", "100");
+            });
+
+            //  Pan
+            document.getElementById("btnPanCounterClockwise-max").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnPanCounterClockwise-max", "pan", "-10000");
+            });
+            document.getElementById("btnPanCounterClockwise-med").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnPanCounterClockwise-med", "pan", "-1000");
+            });
+            document.getElementById("btnPanCounterClockwise-min").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnPanCounterClockwise-min", "pan", "-100");
+            });
+            document.getElementById("btnPanClockwise-min").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnPanClockwise-min", "pan", "100");
+            });
+            document.getElementById("btnPanClockwise-med").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnPanClockwise-med", "pan", "1000");
+            });
+            document.getElementById("btnPanClockwise-max").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnPanClockwise-max", "pan", "10000");
+            });
+
+            //  Tilt
+            document.getElementById("btnTiltForward-max").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnTiltForward-max", "tilt", "1200");
+            });
+            document.getElementById("btnTiltForward-med").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnTiltForward-med", "tilt", "400");
+            });
+            document.getElementById("btnTiltForward-min").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnTiltForward-min", "tilt", "100");
+            });
+            document.getElementById("btnTiltBackward-min").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnTiltBackward-min", "tilt", "-100");
+            });
+            document.getElementById("btnTiltBackward-med").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnTiltBackward-med", "tilt", "-400");
+            });
+            document.getElementById("btnTiltBackward-max").addEventListener('click', function () {
+                sendCommand("MoveRelative", "btnTiltBackward-max", "tilt", "-1200");
+            });
+
+
+            //  GetCurrent            
+            document.getElementById("btnGetCurrentForStart").addEventListener('click', function () {
+                sendCommand("GetCurrent", "btnGetCurrentForStart", "start");
+            });
+            document.getElementById("btnGetCurrentForEnd").addEventListener('click', function () {
+                sendCommand("GetCurrent", "btnGetCurrentForEnd", "end");
+            });
+
+            //  Go to position
+            document.getElementById("btnGotoSlideStartPosition").addEventListener('click', function () {
+                sendCommand('GotoPosition', 'btnGotoSlideStartPosition');
+            });
+            document.getElementById("btnGotoSlideEndPosition").addEventListener('click', function () {
+                sendCommand('GotoPosition', 'btnGotoSlideEndPosition');
+            });
+
+
+            //  Save
+            document.getElementById("btnSaveSettings").addEventListener('click', function () {
+                sendCommand('SaveSettings', 'btnSaveSettings');
+            });
+
+            //  Start
+            document.getElementById("btnStart").addEventListener('click', function () {
+                sendCommand('startprogram', 'btnStart');
+            });
+
+
+            document.getElementById("infoPanel").value = "";
+        }
+
+        function onChange(elem) {
+            var id = elem.id;
+        }
+
+        const waitForOpenConnection = (socket) => {
+            return new Promise((resolve, reject) => {
+                const maxNumberOfAttempts = 10
+                const intervalTime = 200 //ms
+
+                let currentAttempt = 0
+                const interval = setInterval(() => {
+                    if (currentAttempt > maxNumberOfAttempts - 1) {
+                        clearInterval(interval)
+                        reject(new Error('Maximum number of attempts exceeded'))
+                    } else if (socket.readyState === socket.OPEN) {
+                        clearInterval(interval)
+                        resolve()
+                    }
+                    currentAttempt++
+                }, intervalTime)
+            })
+        }
+
+        const sendMessage = async (socket, msg) => {
+            if (socket.readyState !== socket.OPEN) {
+                try {
+                    await waitForOpenConnection(socket)
+                    socket.send(msg)
+                } catch (err) { console.error(err) }
+            } else {
+                socket.send(msg)
+            }
+        }
+
+        function sendCommand(cmd = "stop", sourceControl = "-", param1 = "-", param2 = "-", param3 = "-", param4 = "-", param5 = "-", param6 = "-", param7 = "-", param8 = "-", param9 = "-", param10 = "-") {
+            const wsMotorControl = new WebSocket(
+                "ws://%ipaddress%/ws",
+            );
+
+            if (cmd == "SaveSettings") {
+                param1 = "timelapseSaveSettings";
+                param2 = document.getElementById("StartPositionX").value;
+                param3 = document.getElementById("StartPositionY").value;
+                param4 = document.getElementById("StartPositionZ").value;
+                param5 = document.getElementById("EndPositionX").value;
+                param6 = document.getElementById("EndPositionY").value;
+                param7 = document.getElementById("EndPositionZ").value;
+
+                param8 = document.getElementById("numNumberofShots").value;
+                param9 = document.getElementById("numInterval").value;
+                param10 = document.getElementById("numExposureDuration").value;
+            }
+
+            if (cmd == "GotoPosition") {
+                if (sourceControl == "btnGotoSlideStartPosition") {
+                    param1 = document.getElementById("StartPositionX").value;
+                    param2 = document.getElementById("StartPositionY").value;
+                    param3 = document.getElementById("StartPositionZ").value;
+                }
+                if (sourceControl == "btnGotoSlideEndPosition") {
+                    param1 = document.getElementById("EndPositionX").value;
+                    param2 = document.getElementById("EndPositionY").value;
+                    param3 = document.getElementById("EndPositionZ").value;
+                }
+            }
+
+            if (cmd == "startprogram") {
+                var elem = param1;
+                var id = elem.id;
+
+                param1 = "Timelapse"
+                el = document.getElementById("StartPositionX");
+                param2 = el.value;
+                el = document.getElementById("StartPositionY");
+                param3 = el.value;
+                el = document.getElementById("StartPositionZ");
+                param4 = el.value;
+                el = document.getElementById("EndPositionX");
+                param5 = el.value;
+                el = document.getElementById("EndPositionY");
+                param6 = el.value;
+                el = document.getElementById("EndPositionZ");
+                param7 = el.value;
+                el = document.getElementById("numNumberofShots");
+                param8 = el.value;
+                el = document.getElementById("numInterval");
+                param9 = el.value;
+                el = document.getElementById("numExposureDuration");
+                param10 = el.value;
+
+            }
+
+            var myJson;
+
+            myJson = '{"command": "'
+            myJson += cmd
+            myJson += '","params": {"param1": "'
+            myJson += String(param1)
+            myJson += '","param2":"'
+            myJson += String(param2)
+            myJson += '","param3":"'
+            myJson += String(param3)
+            myJson += '","param4":"'
+            myJson += String(param4)
+            myJson += '","param5":"'
+            myJson += String(param5)
+            myJson += '","param6":"'
+            myJson += String(param6)
+            myJson += '","param7":"'
+            myJson += String(param7)
+            myJson += '","param8":"'
+            myJson += String(param8)
+            myJson += '","param9":"'
+            myJson += String(param9)
+            myJson += '","param10":"'
+            myJson += String(param10)
+            myJson += '"}}'
+
+            sendMessage(wsMotorControl, myJson + '\0');
+            document.getElementById("dataPanel").innerText = myJson;
+
+            wsMotorControl.onmessage = function (e) {
+
+                if (cmd == "GetCurrent") {
+
+                    let s = e.data;
+                    const arr = s.split(":");
+
+                    if (sourceControl == "btnGetCurrentForStart") {
+                        document.getElementById("StartPositionX").value = arr[0];
+                        document.getElementById("StartPositionY").value = arr[1];
+                        document.getElementById("StartPositionZ").value = arr[2];
+                    }
+
+                    if (sourceControl == "btnGetCurrentForEnd") {
+                        document.getElementById("EndPositionX").value = arr[0];
+                        document.getElementById("EndPositionY").value = arr[1];
+                        document.getElementById("EndPositionZ").value = arr[2];
+                    }
+
+                }
+
+
+            }
+
+            return;
+        }
+
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+</head>
+
+<body onload="PageLoaded();">
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg bg-light">
+            <div class="container-fluid">
+                <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarTogglerDemo01" aria-controls="navbarTogglerDemo01" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
+                    <ul class="navbar-nav nav-pills me-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link" href="/">Status</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/general-settings.html">General</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button"
+                                data-bs-toggle="dropdown">Slider</a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item active" href="/slider-timelapse.html">Timelapse</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/slider-panning-video.html">Panning video</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/slider-mainenance.html">Maintenance</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/network-settings.html">Network</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/tools.html">Tools</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <div class="mt-6 p-3 bg-primary text-white rounded">
+            <h1>Camera Slider</h1>
+            <h2>Timelapse</h2>
+        </div>
+        <br />
+        <div class="alert alert-danger" %danger-hidden%>
+            <strong>Error!</strong> The local IP address could not be determined. Restart the device!
+        </div>
+
+
+        <div class="card-body">
+            <div class="mb-3 row">
+                <label for="numNumberofShots" class="col-sm-2 col-form-label">Number of shots:</label>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" id="numNumberofShots" placeholder="Enter an integer"
+                        name="numNumberofShots" value="%numNumberofShots%" min="1" max="999">
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="numInterval" class="col-sm-2 col-form-label">Interval [s]:</label>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" id="numInterval" placeholder="Enter an integer"
+                        name="numInterval" value="%numInterval%" min="1" max="300">
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="numExposureDuration" class="col-sm-2 col-form-label">Exposure length
+                    [s]:</label>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" id="numExposureDuration" placeholder="Enter an integer"
+                        name="numExposureDuration" value="%numExposureLength%" min="1" max="999">
+                </div>
+            </div>
+
+
+
+            <div class='sectionTitleDiv'>
+                <h3>Position</h3>
+            </div>
+
+            <div class="mb-3 row">
+                <h4>Slider</h4>
+            </div>
+            <div class="mb-3 row ">
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnSlider-max" name="btnSlider-max">
+                        <img src="arrow-left.png" width="45" /> </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnSlider-med" name="btnSlider-med">
+                        <img src="arrow-left.png" width="35" /> </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnSlider-min" name="btnSlider-min">
+                        <img src="arrow-left.png" width="25" /> </button>
+                </div>
+
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnSlider+min" name="btnSlider+min">
+                        <img src="arrow-right.png" width="25" /> </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnSlider+med" name="btnSlider+med">
+                        <img src="arrow-right.png" width="35" /> </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnSlider+max" name="btnSlider+max">
+                        <img src="arrow-right.png" width="45" /> </button>
+                </div>
+            </div>
+
+
+            <div class="mb-3 row">
+                <h4>Pan</h4>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnPanCounterClockwise-max" name="btnPanCounterClockwise-max">
+                        <img src="rotate-counterclockwise.png" width="45" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnPanCounterClockwise-med" name="btnPanCounterClockwise-med">
+                        <img src="rotate-counterclockwise.png" width="35" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnPanCounterClockwise-min" name="btnPanCounterClockwise-min">
+                        <img src="rotate-counterclockwise.png" width="25" />
+                    </button>
+                </div>
+
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnPanClockwise-min" name="btnPanClockwise-min">
+                        <img src="rotate-clockwise.png" width="25" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnPanClockwise-med" name="btnPanClockwise-med">
+                        <img src="rotate-clockwise.png" width="35" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnPanClockwise-max" name="btnPanClockwise-max">
+                        <img src="rotate-clockwise.png" width="45" />
+                    </button>
+                </div>
+
+            </div>
+
+
+            <div class="mb-3 row">
+                <h4>Tilt</h4>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnTiltForward-max" name="btnTiltForward-max">
+                        <img src="rotate-forward.png" width="45" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnTiltForward-med" name="btnTiltForward-med">
+                        <img src="rotate-forward.png" width="35" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnTiltForward-min" name="btnTiltForward-min">
+                        <img src="rotate-forward.png" width="25" />
+                    </button>
+                </div>
+
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnTiltBackward-min" name="btnTiltBackward-min">
+                        <img src="rotate-backward.png" width="25" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnTiltBackward-med" name="btnTiltBackward-med">
+                        <img src="rotate-backward.png" width="35" />
+                    </button>
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" id="btnTiltBackward-max" name="btnTiltBackward-max">
+                        <img src="rotate-backward.png" width="45" />
+                    </button>
+                </div>
+
+            </div>
+
+            <div class='sectionTitleDiv'>
+                <h4>Start</h4>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <label for="StartPositionX" class="col-sm-2 col-form-label">Slide:</label>
+                </div>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" min="0" max="%panningvideo-maxX%" id="StartPositionX"
+                        name="StartPositionX" value="%StartPositionX%" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <label for="StartPositionY" class="col-form-label">Pan:</label>
+                </div>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" min="-%panningvideo-maxY%" max="%panningvideo-maxY%"
+                        id="StartPositionY" name="StartPositionY" value="%StartPositionY%" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <label for="StartPositionZ" class="col-sm-2 col-form-label">Tilt:</label>
+                </div>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" min="-%panningvideo-maxZ%" max="%panningvideo-maxZ%"
+                        id="StartPositionZ" name="StartPositionZ" value="%StartPositionZ%" />
+                </div>
+                <div class="col-sm-1">
+                </div>
+                <div class="col-sm-2">
+                    <input type='button' class='btn btn-secondary' id="btnGetCurrentForStart" value='Get current' />
+                </div>
+
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-5">
+                </div>
+                <div class="col-sm-2">
+                    <input type='button' class='btn btn-primary' id="btnGotoSlideStartPosition"
+                        value='Go to position' />
+                </div>
+            </div>
+
+            <div class='sectionTitleDiv'>
+                <h4>End</h4>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <label for="EndPositionX" class="col-sm-2 col-form-label">Slide:</label>
+                </div>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" min="0" max="%panningvideo-maxX%" id="EndPositionX"
+                        name="EndPositionX" value="%EndPositionX%" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <label for="EndPositionY" class="col-sm-2 col-form-label">Pan:</label>
+                </div>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" min="-%panningvideo-maxY%" max="%panningvideo-maxY%"
+                        id="EndPositionY" name="EndPositionY" value="%EndPositionY%" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-2">
+                    <label for="EndPositionZ" class="col-sm-2 col-form-label">Tilt:</label>
+                </div>
+                <div class="col-sm-2">
+                    <input type="number" class="form-control" min="-%panningvideo-maxZ%" max="%panningvideo-maxZ%"
+                        id="EndPositionZ" name="EndPositionZ" value="%EndPositionZ%" />
+                </div>
+                <div class="col-sm-1">
+                </div>
+                <div class="col-sm-2">
+                    <input type='button' class='btn btn-secondary' id="btnGetCurrentForEnd" value='Get current' />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-5">
+                </div>
+                <div class="col-sm-2">
+                    <input type='button' class='btn btn-primary' id="btnGotoSlideEndPosition" value='Go to position' />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="col-sm-5">
+                </div>
+                <div class="col-sm-2">
+                    <input type='button' class='btn btn-success' value='Save settings' id="btnSaveSettings">
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <div class="d-grid">
+                    <input type='button' class='btn btn-warning' id="btnStart" value='Start timelapse' />
+                </div>
+            </div>
+
+            <div class="mb-3 d-grid">
+                <div class="col-sm-12 alert alert-dark alert-dismissible fade show" id="infoPanel" name="infoPanel">
+                    %websocket_messages%
+                </div>
+            </div>
+            <div class="mb-3 d-grid">
+                <div class="col-sm-12 alert alert-dark alert-dismissible fade show" id="dataPanel" name="dataPanel">
+                    %websocket_messages%
+                </div>
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+
+
+    <small class='well well-sm'>
+        (c)2024 Viktor Takacs - <a href='https://diy.viktak.com' target='_blank'>diy.viktak.com</a>
+    </small>
+</body>
+
+</html>
