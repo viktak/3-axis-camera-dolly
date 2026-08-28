@@ -163,7 +163,7 @@ void PrintParameters(AsyncWebServerRequest *request)
     int params = request->params();
     for (int i = 0; i < params; i++)
     {
-        AsyncWebParameter *p = request->getParam(i);
+        const AsyncWebParameter *p = request->getParam(i);
         if (p->isFile())
         { // p->isPost() is also true
             SerialMon.printf("FILE[%s]: %s, size: %u\n", p->name().c_str(), p->value().c_str(), p->size());
@@ -185,7 +185,7 @@ void PrintHeaders(AsyncWebServerRequest *request)
     int i;
     for (i = 0; i < headers; i++)
     {
-        AsyncWebHeader *h = request->getHeader(i);
+        const AsyncWebHeader *h = request->getHeader(i);
         SerialMon.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
     }
 }
@@ -288,11 +288,9 @@ String GeneralSettingsTemplateProcessor(const String &var)
 
 void POSTGeneralSettings(AsyncWebServerRequest *request)
 {
-    AsyncWebParameter *p;
-
     if (request->hasParam("txtFriendlyName", true))
     {
-        p = request->getParam("txtFriendlyName", true);
+        const AsyncWebParameter *p = request->getParam("txtFriendlyName", true);
         sprintf(appSettings.friendlyName, "%s", p->value().c_str());
     }
 
@@ -366,11 +364,9 @@ String SliderPanningVideoTemplateProcessor(const String &var)
 
 void POSTSliderPanningVideo(AsyncWebServerRequest *request)
 {
-    AsyncWebParameter *p;
-
     if (request->hasParam("txtFriendlyName", true))
     {
-        p = request->getParam("txtFriendlyName", true);
+        const AsyncWebParameter *p = request->getParam("txtFriendlyName", true);
         sprintf(appSettings.friendlyName, "%s", p->value().c_str());
     }
 
@@ -449,11 +445,9 @@ String SliderTimelapseTemplateProcessor(const String &var)
 
 void POSTSliderTimelapse(AsyncWebServerRequest *request)
 {
-    AsyncWebParameter *p;
-
     if (request->hasParam("txtFriendlyName", true))
     {
-        p = request->getParam("txtFriendlyName", true);
+        const AsyncWebParameter *p = request->getParam("txtFriendlyName", true);
         sprintf(appSettings.friendlyName, "%s", p->value().c_str());
     }
 
@@ -493,9 +487,6 @@ String SliderMaintenanceProcessor(const String &var)
             break;
         }
     }
-
-
-
 
     return "n/a";
 }
@@ -566,17 +557,16 @@ String NetworkSettingsTemplateProcessor(const String &var)
 
 void POSTNetworkSettings(AsyncWebServerRequest *request)
 {
-    AsyncWebParameter *p;
 
     if (request->hasParam("lstNetworks", true))
     {
-        p = request->getParam("lstNetworks", true);
+        const AsyncWebParameter *p = request->getParam("lstNetworks", true);
         sprintf(appSettings.wifiSSID, "%s", p->value().c_str());
     }
 
     if (request->hasParam("txtPassword", true))
     {
-        p = request->getParam("txtPassword", true);
+        const AsyncWebParameter *p = request->getParam("txtPassword", true);
         sprintf(appSettings.wifiPassword, "%s", p->value().c_str());
     }
 
